@@ -48,14 +48,32 @@ pipeline {
       }
     }
 
-    stage('Publish and run') {
-      steps {
-        sh '''
-          docker tag holiday-events:candidate holiday-events:latest
-          docker rm -f holiday-events 2>/dev/null || true
-          docker run -d --name holiday-events -p 8080:3000 holiday-events:latest
-          docker image rm holiday-events:candidate
-        '''
+    stage('Push to Docker Hub') {
+        steps {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                    )
+                ]) {
+            sh '''
+            IMAGE="$DOCKER_USER/holiday-events"
+
+            docker tag holiday-events:candidate "$IMAGE:${BUILD_NUMBER}"
+            docker tag holiday-events:candidate "$IMAGE:latest"
+
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push "$IMAGE:${BUILD_NUMBER}"
+            docker push "$IMAGE:latest"
+            docker logout
+
+            docker image rm -f \
+                holiday-events:candidate \
+                "$IMAGE:${BUILD_NUMBER}" \
+                "$IMAGE:latest"
+            '''
+        }
       }
     }
   }
