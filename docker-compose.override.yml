@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - ./app.js:/app/app.js
+      - ./public:/app/public
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
