@@ -87,21 +87,16 @@ pipeline {
                 )
             ]) {
                 sh '''
-                umask 077
-                trap 'rm -f .ansible-secrets.json' EXIT
-
-                python3 -c '
-        import json, os
-        print(json.dumps({
-        "ansible_become_password": os.environ["ANSIBLE_BECOME_PASSWORD"]
-        }))
-        ' > .ansible-secrets.json
-
-                ansible-playbook \
-                    -i ansible/inventory.ini \
-                    ansible/deploy.yml \
-                    -e @.ansible-secrets.json \
-                    -e "app_image=yanivking06/holiday-events:${BUILD_NUMBER}"
+                  umask 077
+                  trap 'rm -f .ansible-secrets.json' EXIT
+  
+                  python3 -c 'import json, os; print(json.dumps({"ansible_become_password": os.environ["ANSIBLE_BECOME_PASSWORD"]}))' > .ansible-secrets.json
+  
+                  ansible-playbook \
+                      -i ansible/inventory.ini \
+                      ansible/deploy.yml \
+                      -e @.ansible-secrets.json \
+                      -e "app_image=yanivking06/holiday-events:${BUILD_NUMBER}"
                 '''
             }
             }
