@@ -1,0 +1,52 @@
+---
+- name: Deploy holiday events app
+  hosts: app
+  become: true
+
+  vars:
+    app_image: yanivking06/holiday-events:latest
+    app_container: holiday-events
+
+  tasks:
+    - name: Install Docker and its Python library
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - python3-docker
+        state: present
+        update_cache: true
+
+    - name: Start Docker on boot
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Pull application image from Docker Hub
+      community.docker.docker_image:
+        name: "{{ app_image }}"
+        source: pull
+
+    - name: Run latest application container
+      community.docker.docker_container:
+        name: holiday-events
+        image: "{{ app_image }}"
+        state: started
+        recreate: true
+        restart_policy: unless-stopped
+        published_ports:
+          - "8080:3000"
+
+    - name: Verify application health endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/health
+        method: GET
+        status_code: 200
+        return_content: true
+      register: healthcheck
+      until:
+        - healthcheck.status == 200
+        - healthcheck.json.status == "healthy"
+      retries: 10
+      delay: 2
+      changed_when: false
